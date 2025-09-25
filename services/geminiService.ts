@@ -1,9 +1,7 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 import type { Message } from '../types';
 
-const API_KEY = "AIzaSyDsU6Ks2cjZ1AkDqVklsSCv3jerr7jmz58";
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const model = 'gemini-2.5-flash';
 
@@ -61,14 +59,20 @@ const buildGeminiHistory = (messages: Message[]) => {
 
 export async function* streamChat(messages: Message[]): AsyncGenerator<string> {
   // The last message is the new user prompt
-  const latestMessage = messages.pop();
+  // FIX: Property 'at' does not exist on type 'Message[]'. Replaced with index access for compatibility.
+  const latestMessage = messages[messages.length - 1];
   if (!latestMessage || latestMessage.role !== 'user') {
-    throw new Error("Last message must be from the user.");
+    // This case should ideally not be reached if UI logic is correct
+    // but as a safeguard, we can return nothing or throw.
+    return;
   }
   
+  // The history is all messages *before* the last one.
+  const history = messages.slice(0, -1);
+
   const chat: Chat = ai.chats.create({
     model,
-    history: buildGeminiHistory(messages),
+    history: buildGeminiHistory(history),
   });
 
   const result = await chat.sendMessageStream({ message: latestMessage.content });

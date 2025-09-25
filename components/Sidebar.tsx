@@ -1,7 +1,6 @@
-
 import React from 'react';
-import type { Conversation, Theme } from '../types';
-import { PlusIcon, SunIcon, MoonIcon, TrashIcon } from './Icons';
+import type { Conversation, Theme, User } from '../types';
+import { PlusIcon, SunIcon, MoonIcon, TrashIcon, LogoutIcon } from './Icons';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,14 +12,16 @@ interface SidebarProps {
   onDeleteConversation: (id: string) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  user: User;
+  onLogout: () => void;
 }
 
-const UserProfile: React.FC = () => (
-    <div className="flex items-center p-4 border-t border-gray-200/20">
-        <img src="https://picsum.photos/seed/user/40/40" alt="User Avatar" className="w-10 h-10 rounded-full" />
-        <div className="ml-3">
-            <p className="font-semibold">Jane Doe</p>
-            <p className="text-sm text-gray-400">jane.doe@example.com</p>
+const UserProfile: React.FC<{ user: User }> = ({ user }) => (
+    <div className="flex items-center p-4 border-t border-gray-700/50">
+        <img src={user.avatarUrl} alt="User Avatar" className="w-10 h-10 rounded-full" />
+        <div className="ml-3 overflow-hidden">
+            <p className="font-semibold truncate">{user.name}</p>
+            <p className="text-sm text-gray-400 truncate">{user.email}</p>
         </div>
     </div>
 );
@@ -35,6 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteConversation,
   theme,
   setTheme,
+  user,
+  onLogout,
 }) => {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -53,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } md:relative md:translate-x-0 md:w-80`}
       >
-        <div className="p-4 flex justify-between items-center">
+        <div className="p-4 flex justify-between items-center border-b border-gray-700/50">
           <button
             onClick={onNewChat}
             className="flex items-center w-full text-left p-2 rounded-md hover:bg-gray-700 transition-colors"
@@ -62,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             New Chat
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto px-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
           {conversations.map((conv) => (
             <div key={conv.id} className="group flex items-center">
               <button
@@ -78,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     e.stopPropagation();
                     onDeleteConversation(conv.id);
                 }}
-                className="p-1 rounded-md text-gray-500 hover:text-white hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-1 ml-1 rounded-md text-gray-500 hover:text-white hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="Delete conversation"
               >
                 <TrashIcon className="w-4 h-4" />
@@ -86,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ))}
         </nav>
-        <div className="p-2">
+        <div className="p-2 space-y-1">
             <button
                 onClick={toggleTheme}
                 className="w-full flex items-center p-2 rounded-md hover:bg-gray-700 transition-colors"
@@ -98,8 +101,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
                 <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
+            <button
+                onClick={onLogout}
+                className="w-full flex items-center p-2 rounded-md hover:bg-gray-700 transition-colors"
+            >
+                <LogoutIcon className="w-5 h-5 mr-2" />
+                <span>Sign Out</span>
+            </button>
         </div>
-        <UserProfile />
+        <UserProfile user={user} />
       </aside>
     </>
   );

@@ -16,3 +16,9 @@ export interface Conversation {
 }
 
 export type Theme = 'light' | 'dark';
+
+export interface User {
+  name: string;
+  email: string;
+  avatarUrl: string;
+}
