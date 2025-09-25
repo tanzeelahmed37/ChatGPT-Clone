@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatView } from './components/ChatView';
 import { useTheme } from './hooks/useTheme';
 import type { Conversation, Message } from './types';
-import { streamChat } from './services/geminiService';
+import { streamChat, transcribeAudio } from './services/geminiService';
 
 const App: React.FC = () => {
   const [theme, setTheme] = useTheme();
@@ -44,41 +43,75 @@ const App: React.FC = () => {
 
   const activeConversation = conversations.find(c => c.id === activeConversationId) || null;
 
-  const handleSendMessage = useCallback(async (message: string) => {
+  const handleSendMessage = useCallback(async (message: string | null, audio?: { data: string; mimeType: string; }) => {
     if (isProcessing) return;
     setIsProcessing(true);
 
-    const userMessage: Message = { role: 'user', content: message };
-    let currentConversation = activeConversation;
+    let userMessage: Message;
+    let tempUserMessage: Message | null = null;
     let conversationId = activeConversationId;
-
+    
+    // Initial setup for new or existing conversation
+    let currentConversation = activeConversation;
     if (!currentConversation) {
-      conversationId = `conv-${Date.now()}`;
-      const newConversation: Conversation = {
-        id: conversationId,
-        title: message.substring(0, 30) + (message.length > 30 ? '...' : ''),
-        messages: [userMessage],
-      };
-      setConversations(prev => [newConversation, ...prev]);
-      setActiveConversationId(conversationId);
-      currentConversation = newConversation;
-    } else {
-      const updatedMessages = [...currentConversation.messages, userMessage];
-      const updatedConversation = { ...currentConversation, messages: updatedMessages };
-      setConversations(prev => prev.map(c => c.id === conversationId ? updatedConversation : c));
-      currentConversation = updatedConversation;
+        conversationId = `conv-${Date.now()}`;
+        const newConv: Conversation = { id: conversationId, title: "New Chat", messages: [] };
+        setConversations(prev => [newConv, ...prev]);
+        setActiveConversationId(conversationId);
+        currentConversation = newConv;
     }
 
-    const modelMessage: Message = { role: 'model', content: '' };
+    if (audio) {
+        tempUserMessage = { role: 'user', content: '🎤 Transcribing...', audio };
+    } else if (message) {
+        userMessage = { role: 'user', content: message };
+    } else {
+        setIsProcessing(false);
+        return;
+    }
+    
+    // Add temporary message for audio transcription UI
+    if (tempUserMessage) {
+        const tempMsg = tempUserMessage;
+        setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, messages: [...c.messages, tempMsg] } : c));
+        const transcribedText = await transcribeAudio(audio!);
+        userMessage = { role: 'user', content: transcribedText, audio };
+    }
+
+    const finalUserMessage = userMessage!;
+
+    // Update conversation with final user message
     setConversations(prev => prev.map(c => {
+        if (c.id === conversationId) {
+            const newMessages = tempUserMessage 
+                ? c.messages.map(m => m === tempUserMessage ? finalUserMessage : m)
+                : [...c.messages, finalUserMessage];
+            
+            // Update title for new conversations
+            const newTitle = c.messages.length === 0 
+                ? finalUserMessage.content.substring(0, 30) + (finalUserMessage.content.length > 30 ? '...' : '')
+                : c.title;
+
+            return { ...c, title: newTitle, messages: newMessages };
+        }
+        return c;
+    }));
+
+    // Add empty model message for streaming
+    const modelMessage: Message = { role: 'model', content: '' };
+     setConversations(prev => prev.map(c => {
       if (c.id === conversationId) {
         return { ...c, messages: [...c.messages, modelMessage] };
       }
       return c;
     }));
 
+
     try {
-      const stream = streamChat(currentConversation.messages);
+      const updatedConv = conversations.find(c => c.id === conversationId);
+      const history = updatedConv ? [...updatedConv.messages.slice(0, -1)] : [];
+      
+      const stream = streamChat(history);
       for await (const chunk of stream) {
         modelMessage.content += chunk;
         setConversations(prev => prev.map(c => {

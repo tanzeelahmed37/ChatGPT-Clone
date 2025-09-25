@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Message } from '../types';
 import { UserIcon, BotIcon } from './Icons';
@@ -11,7 +10,7 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
     const parts = text.split(/(\`{1,3}[^\`]+\`{1,3}|\*\*[^\*]+\*\*)/g);
     
     return (
-        <p className="text-sm">
+        <div className="text-sm space-y-2">
             {parts.map((part, index) => {
                 if (part.startsWith('```') && part.endsWith('```')) {
                     return (
@@ -26,9 +25,9 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
                 if (part.startsWith('**') && part.endsWith('**')) {
                     return <strong key={index}>{part.slice(2, -2)}</strong>;
                 }
-                return part;
+                return <p key={index}>{part}</p>;
             })}
-        </p>
+        </div>
     );
 };
 
@@ -49,6 +48,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       </div>
       <div className={`${textContainerClasses}`}>
         <div className={`px-4 py-2 rounded-lg max-w-xl md:max-w-2xl ${bubbleClasses}`}>
+          {message.audio && (
+            <audio
+                controls
+                src={`data:${message.audio.mimeType};base64,${message.audio.data}`}
+                className="w-full max-w-xs my-2 h-10"
+            />
+           )}
           {message.content ? (
             <SimpleMarkdown text={message.content} />
           ) : (

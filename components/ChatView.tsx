@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import type { Conversation } from '../types';
 import { MessageBubble } from './MessageBubble';
@@ -7,7 +6,7 @@ import { MenuIcon, BotIcon } from './Icons';
 
 interface ChatViewProps {
   conversation: Conversation | null;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string | null, audio?: { data: string; mimeType: string; }) => void;
   isProcessing: boolean;
   onMenuClick: () => void;
 }

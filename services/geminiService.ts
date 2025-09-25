@@ -7,6 +7,31 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const model = 'gemini-2.5-flash';
 
+export async function transcribeAudio(audio: { data: string, mimeType: string }): Promise<string> {
+    try {
+        const audioPart = {
+            inlineData: {
+                mimeType: audio.mimeType,
+                data: audio.data,
+            },
+        };
+        const textPart = {
+            text: "Transcribe this voice message accurately."
+        };
+
+        const response = await ai.models.generateContent({
+            model,
+            contents: { parts: [textPart, audioPart] },
+        });
+        
+        return response.text;
+    } catch (error) {
+        console.error("Error transcribing audio:", error);
+        return "Audio transcription failed. Please try again.";
+    }
+}
+
+
 // Convert our Message[] to Gemini's Content[] format, merging consecutive messages of the same role
 const buildGeminiHistory = (messages: Message[]) => {
     const history = [];
